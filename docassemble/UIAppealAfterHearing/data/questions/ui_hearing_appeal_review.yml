@@ -1,0 +1,105 @@
+#################### REVIEW SCREEN #########################
+id: review screen
+event: review_answers
+question: |
+  Review screen
+subquestion: |
+  Edit your answers below.
+review:
+  - note: |
+     <h4>UI decision</h4>
+  - Edit: received_finding_letter
+    button: |
+      **UI finding letter:**
+      ${ word(yesno(received_finding_letter)) }
+  - Edit: decision_date
+    button: |
+      **UI finding letter date:**
+      ${ decision_date.format("MM/dd/yyyy") }
+  - Edit: appeal_reason
+    button: |
+      **Appeal reason:**
+
+      ${ appeal_reason }
+  - Edit: request_date
+    button: |
+      **Date of request:**
+      % if request_date:
+      ${ request_date.format("MM/dd/yyyy") }
+      % else:
+      None entered
+
+      Be sure to add the date to your request when you sign it.
+      % endif
+  - note: |
+     <h4>About You</h4>
+  - Edit: users[0].name.first
+    button: |
+      **Your name:**
+      ${ users[0].name_full() }
+  - Edit: users[0].phone_number
+    button: |
+      **Your phone number:**
+      % if users[0].phone_number == "":
+      No phone number entered
+      % else:
+      ${ phone_number_formatted(users[0].phone_number) }
+      % endif
+  - Edit: users[0].id_or_ssn
+    button: |
+      **Claimant ID:**
+      ${ int(users[0].id_or_ssn) }
+---
+#################### SECTION REVIEW - UNEMPLOYMENT BENEFITS DECISION #########################
+id: Unemployment benefits decision review screen
+event: section_decision
+question: |
+  Unemployment benefits decision details
+review:
+  - Edit: received_finding_letter
+    button: |
+      **UI finding letter:**
+      ${ word(yesno(received_finding_letter)) }
+  - Edit: decision_date
+    button: |
+      **UI finding letter date:**
+      ${ decision_date.format("MM/dd/yyyy") }
+  - Edit: appeal_reason
+    button: |
+      **Appeal reason:**
+
+      ${ appeal_reason }
+  - Edit: request_date
+    button: |
+      **Date of request:**
+      % if request_date:
+      ${ request_date.format("MM/dd/yyyy") }
+      % else:
+      None entered
+
+      Be sure to add the date to your request when you sign it.
+      % endif
+---
+#################### SECTION REVIEW - ABOUT #########################
+id: About you review screen
+event: section_about
+question: |
+  About you
+review:
+  - Edit: users[0].name.first
+    button: |
+      **Your name:**
+      ${ users[0].name_full() }
+  - Edit: users[0].phone_number
+    button: |
+      **Your phone number:**
+      % if users[0].phone_number == "":
+      No phone number entered
+      % else:
+      ${ phone_number_formatted(users[0].phone_number) }
+      % endif
+  - Edit: users[0].id_or_ssn
+    button: |
+      **Claimant ID:**
+      ${ int(users[0].id_or_ssn) }
+---

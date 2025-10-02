@@ -1,0 +1,415 @@
+metadata:
+  title: Unemployment appeal after a hearing
+  short title: Unemployment appeal after hearing
+  comment: This Easy Form will help you make forms to ask the Illinois Department of Employment Security (IDES) to reconsider a decision to deny you unemployment benefits. It creates a Request for Reconsideration of Claims Adjudicator's Determination that asks for a referee hearing.
+  authors:
+    - Jim Graszer
+    - Matt Newsted
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ILAO:ilao-interview-framework.yml
+  - docassemble.ILAO:shared-basic-questions.yml
+  - ui_hearing_appeal_review.yml
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True)
+---
+code: |
+  ilao_easy_form_title = "Unemployment benefits appeal after a hearing"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/unemployment-benefits-appeal"
+  form_name = "Request for reconsideration"
+  github_user = 'IllinoisLegalAidOnline'
+  github_repo_name = 'docassemble-UIHearingRequest'
+---
+sections:
+  - section_intro: Start
+  - section_decision: Unemployment benefits decision
+  - section_about: About you
+  - section_download: Download
+---
+#################### Interview order #####################
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  sees_nav_bar
+  snapshot_start
+  set_progress(5)
+  how_to_use
+  accept_terms
+
+  nav.set_section('section_decision')
+  set_progress(15)
+  about_ui_bens
+  if received_finding_letter == False:
+    no_finding_letter
+  decision_date
+  check_late_request
+  set_progress(45)
+  if decision_diff.days >= 30:
+    late_request
+  appeal_reason
+  request_date
+  recert_reminder
+  
+  nav.set_section('section_about')
+  set_progress(75)
+  users[0].name.first
+  users[0].phone_number
+  users[0].id_or_ssn
+
+  set_progress(100)
+  nav.set_section('section_download')
+  forms_assembling
+  snapshot_forms
+  get_docs_screen
+---
+code: |
+  stuff_to_snapshot = {
+  	'start_time': str(current_datetime().format_datetime()),
+  	'started_interview': True, 
+  	}
+
+  try:
+    stuff_to_snapshot['ip_address'] = device(ip=True)
+  except:
+    pass
+
+  stuff_to_snapshot['zip'] = showifdef('users[0].address.zip')
+
+  stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+  
+  store_variables_snapshot(
+  	data=stuff_to_snapshot, persistent=True
+  	)
+  snapshot_interview_state = True
+---
+code: |
+  snapshot_interview_state
+  snapshot_start = True  
+---
+code: |
+  reconsider('snapshot_interview_state')
+  snapshot_forms = True
+---
+id: welcome
+question: |
+  Unemployment benefits appeal after a hearing
+subquestion: |
+  Welcome to Illinois Legal Aid Online's **${ ilao_easy_form_title }** Easy Form.
+
+  If you were denied unemployment benefits, this program will create a form to help you ask the Illinois Department of Employment Security (IDES) to reconsider the decision made by a claims adjudicator.
+
+  To learn more, read ILAO's article about [being denied unemployment insurance](https://www.illinoislegalaid.org/node/32541).
+
+field: sees_nav_bar
+---
+id: instructions
+continue button field: how_to_use
+question: |
+  Instructions
+subquestion: |
+  To use this program you will need:
+
+  * A Finding letter from IDES, and
+  * Your Claimant ID (printed on the letter) or the last 4 digits of your Social Security Number.
+  
+  Set aside 5 to 10 minutes to finish this program. You can log in and save your work to continue later. 
+ 
+  ${ collapse_template(help_example) }  
+
+  Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
+---
+template: help_example
+subject: |
+  **You can click sections like this to show more information.**
+content: |  
+  This is an example of help. Click again to hide.
+---
+id: about ui benefits
+continue button field: about_ui_bens
+question: |
+  About unemployment insurance appeals
+subquestion: |
+  If you are denied unemployment benefits, you have 3 opportunities to appeal:
+
+  1. File an appeal (a Request for Reconsideration) to be heard by an IDES referee. **This program makes a Request for Reconsideration.**
+  
+  2. After your hearing, if you don't agree with the referee's decision, file an appeal with the Board of Review. Use a different [**Easy Form to appeal to the Board of Review**](https://www.illinoislegalaid.org/node/30846).
+  
+  3. Finally, if you don't agree with the Board of Review's decision, file an Administrative Review Action in Circuit Court.
+
+  **Note:** IDES offers free legal service to represent claimants in their unemployment benefits appeals. See the [**IDES Legal Services Program**](https://ides.illinois.gov/resources/legal-services-program/legal-services.html) to find out if you qualify.
+---
+id: received finding letter
+question: |
+  Did you get a Finding letter from IDES?
+subquestion: |
+  This is a letter from a claims adjudicator at the Illinois Department of Employment Security (IDES).
+fields:
+  - no label: received_finding_letter
+    datatype: yesnoradio
+---
+id: no finding letter
+event: no_finding_letter
+question: |
+  Sorry
+subquestion: |
+  You must have received a Finding letter from IDES to request a reconsideration hearing with a referee.
+
+  To learn more, read ILAO's article about [being denied unemployment insurance](https://www.illinoislegalaid.org/node/32541).
+
+  You may want to talk with a lawyer to discuss your options. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: finding letter date
+question: |
+  When was the finding letter dated?
+fields:
+  - Finding letter date: decision_date
+    datatype: ThreePartsDate
+    alMax: ${ today().format("yyyy-MM-dd") }
+---
+code: |
+  decision_diff = date_difference(decision_date, today())
+  check_late_request = True
+---
+id: late request
+question: |
+  Warning: Late request
+subquestion: |
+  You have 30 days from the date on the decision to send in your request. Based on the date of the decision (${ decision_date.format("MM/dd/yyyy") }), your appeal is late.
+
+  You can still request reconsideration, but it might not be accepted. You may want to talk with a lawyer about your options. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
+
+  Click **Back** if you want to change the date of the claims adjudicator's decision. Or you can click **Next** to make your request even though it is late.
+continue button field: late_request
+---
+template: request_example_help	
+subject: |
+  **Can I see an example?**	
+content: |
+  For example, you could say: "The decision letter I received says I was fired for misconduct. However, my employer refused to give me proper safety equipment. My job involves working with hazardous materials. When I told my boss I would not handle the waste without safety equipment, I was fired." 
+---
+### currently unused ###
+template: ides_legal_services_help	
+subject: |
+  **Get legal help from IDES**	
+content: |
+  IDES has a [**legal services program**](https://ides.illinois.gov/resources/legal-services-program/legal-services.html) that can give you 1 hour of free legal help.
+---
+id: appeal reason
+question: |
+  Why are you appealing the ${ decision_date.format("MMMM d, YYYY") } decision?
+subquestion: |
+  Explain why you think the claims adjudicator's decision was wrong. You might want to focus on different things whether you left your job voluntarily (you quit) or involuntarily (you were fired or laid off). You and the employer might have different understandings about what happened. That is why it is important to explain things from your perspective.
+
+  If you **quit**, to receive unemployment benefits you must show that you left for a good reason. It can be helpful to show what you did to try to fix problems before you quit. See ILAO's article about [getting unemployment benefits if you quit your job](https://www.illinoislegalaid.org/node/32111).
+
+  If you were **fired**, your employer has to show that you were fired for misconduct. If you did not do what the employer said you did, you can explain that. Or you can explain how what you did was not misconduct. To learn more, see ILAO's article about [getting unemployment benefits if you were fired](https://www.illinoislegalaid.org/node/32491).
+  
+  ${ collapse_template(request_example_help) }  
+
+  **Note:** The form has room for about **1,300 characters** including spaces.
+fields:
+  - no label: appeal_reason
+    input type: area
+    rows: 18
+    maxlength: 1300
+script: |
+  <script>
+    $(document).on('daPageLoad', function() {
+      var maxLength = 1300; // This should match the textarea maxlength
+      var textareas = document.querySelectorAll('textarea');
+      textareas.forEach(function (textarea) {
+        var counterId = textarea.id + "_counter";
+        if (document.getElementById(counterId)) return;
+
+        var counter = document.createElement("div");
+        counter.id = counterId;
+        counter.style.textAlign = "right";
+        counter.style.fontSize = "1em";
+        counter.style.color = "#555";
+
+        function updateCounter() {
+          var len = textarea.value.length;
+          counter.textContent = len + "/" + maxLength;
+          if (len > maxLength) {
+            counter.style.fontWeight = "bold";
+            counter.style.color = "#000";
+          } else {
+            counter.style.fontWeight = "normal";
+            counter.style.color = "#555";
+          }
+        }
+
+        textarea.parentNode.appendChild(counter);
+        textarea.addEventListener("input", updateCounter);
+        updateCounter();
+      });
+    });
+  </script>
+---
+id: your name
+sets:
+  - users[0].name.first
+  - users[0].name.last
+  - users[0].name.middle
+  - users[0].name.suffix
+question: |
+  What is your name?
+fields:
+  - code: |
+      users[0].name_fields()
+---
+id: your contact information
+question: |
+  What is your phone number?
+subquestion: |
+  Most referee hearings are conducted by phone.
+fields:  
+  - Phone number: users[0].phone_number
+    datatype: al_international_phone
+---
+id: user last 4 ssn
+question: |
+  Claimant ID
+subquestion: |
+  Enter your Claimant ID or the last 4 digits of your Social Security Number. This is used by IDES to identify your UI benefits claim.
+
+  ${ collapse_template(locating_claimant_id_example) }  
+fields:
+  - Claimant ID or last 4 digits of SSN: users[0].id_or_ssn
+    datatype: number
+    minlength: 4
+    maxlength: 15
+---
+template: locating_claimant_id_example
+subject: |
+  **Learn more about finding your Claimant ID**
+content: |  
+  The Claimant ID can be found in the upper-right of the UI Finding letter, as well as other letters and emails received from IDES.
+  
+  [FILE findingletterexample.jpeg, 100%, Locating a Claimant ID on IDES letter]
+---
+id: request date
+question: |
+  When you will send your request?
+subquestion: |
+  After you download your request, you can mail, fax or deliver it to your local IDES office. The address and fax number appear on the Finding letter or Determination. You can also use the [**IDES Office Locator**](https://ides.illinois.gov/about/locations.html).
+
+  **Note:** Be sure to send your request within 30 days of when your Finding letter was dated (${decision_date}).
+fields:
+  - Date you will send your request: request_date
+    datatype: ThreePartsDate
+    alMin: ${ today().format("yyyy-MM-dd") }
+    required: False
+  - note: |
+      If you don't know this now, leave it blank. Be sure to add the date when you sign the request.
+---
+id: recertification reminder
+question: |
+  Important
+subquestion: |
+
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Remember to re-certify</h6>
+    <p>During the appeal process, you must continue to certify that you are eligible for unemployment benefits for each two-week period you are unemployed.</p>
+    <p>You can do this online or by phone using Tele-Serve.</p>
+  </div>
+
+  Learn more about how to certify for benefits on [IDES's website](https://ides.illinois.gov/unemployment/certify.html).
+continue button field: recert_reminder
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |
+  Your form is ready. View and download your form below. Click **:edit: Make changes** to fix any mistakes.
+
+  This program **does not deliver** your form to IDES. You will need to do that yourself.
+
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+
+  ${ al_user_bundle.download_list_html() }
+
+  [NEWLINE]
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  **Note:** This program **does not deliver** your form to IDES. You will need to do that yourself.
+  
+  Thank you for using ILAO Easy Forms!
+under: |
+  % if not user_logged_in():
+  [${fa_icon("sign-in-alt", color="#0079d0", size="sm")} **Sign-in**](${url_of('login', next=interview_url())}) or [**create**](${url_of('register', next=interview_url())}) an ILAO Easy Form account to save your progress (optional).
+  % endif
+
+  ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+generic object: ALDocumentBundle
+template: x.get_email_copy
+content: |
+  Send a copy of your forms to your email
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Unemployment hearing request forms
+content: |
+  Your forms are attached.
+  
+  Thanks for using ILAO Easy Forms!
+  
+  [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
+---
+###################### ATTACHMENTS ##########################
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, ides_referee_request], filename="completed_referee_request.pdf", title="All forms", enabled=True)
+---
+objects:
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", enabled=True, has_addendum=False)
+  - ides_referee_request: ALDocument.using(title=form_name, filename="ides_request_for_reconsideration.pdf", enabled=True, has_addendum=False)
+---
+attachment:
+  variable name: instructions[i]
+  name: instructions
+  filename: instructions
+  skip undefined: True
+  docx template file: instructions.docx
+---
+attachment:
+  - name: ides_referee_request
+    variable name: ides_referee_request[i]
+    filename: ides_referee_request
+    pdf template file: ides_referee_request.pdf
+    skip undefined: True
+    editable: False
+    fields:
+      - "user_last": ${ users[0].name.last }  
+      - "user_first": ${ users[0].name.first }
+      - "user_middle": ${ users[0].name.middle[:1] }
+      - "claimant_id": ${ int(users[0].id_or_ssn) }
+      - "Claimant": True
+      - "decision_date": ${ decision_date.format("MM/dd/yyyy") }
+      - "reason": 'the denial of unemployment benefits'
+      - "reason_continued": ${ 'to ' + users[0].name_full() }
+      - "appeal": ${ appeal_reason }
+      # signature not electronic
+      - "signature_date": ${ request_date.format("MM/dd/yyyy") }
+      - "user_name": ${ users[0].name_full() }
+      - "phone_number": ${ phone_number_formatted(users[0].phone_number) }
