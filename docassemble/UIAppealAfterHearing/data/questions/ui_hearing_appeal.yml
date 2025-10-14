@@ -14,17 +14,20 @@ include:
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True)
+  - employer: ALIndividual
+  - attachments: DAList.using(object_type=Thing, complete_attribute='complete')
 ---
 code: |
   ilao_easy_form_title = "Unemployment benefits appeal after a hearing"
   ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/unemployment-benefits-appeal"
-  form_name = "Request for reconsideration"
+  form_name = "Notice of Appeal"
   github_user = 'IllinoisLegalAidOnline'
   github_repo_name = 'docassemble-UIHearingRequest'
 ---
 sections:
   - section_intro: Start
-  - section_decision: Unemployment benefits decision
+  - section_hearing: Referee hearing details
+  - section_appeal: Your appeal
   - section_about: About you
   - section_download: Download
 ---
@@ -38,23 +41,43 @@ code: |
   how_to_use
   accept_terms
 
-  nav.set_section('section_decision')
+  nav.set_section('section_hearing')
   set_progress(15)
   about_ui_bens
-  if received_finding_letter == False:
-    no_finding_letter
+
+  if received_denial_letter == False:
+    no_decision_letter
   decision_date
-  check_late_request
-  set_progress(45)
+  check_late_appeal
   if decision_diff.days >= 30:
-    late_request
-  appeal_reason
-  request_date
-  recert_reminder
+    late_reason
+  hearing_date
+  if attended_hearing == False:
+    missed_hearing_explanation
+  docket_number
   
+  nav.set_section('section_appeal')
+  set_progress(35)
+  if termination_type == "quit":
+    quit_intro
+    quit_solve_problems
+  if termination_type == "fired":
+    fired_intro
+    fired_misconduct
+  
+  appeal_reason
+  if attachments.there_are_any:
+    attachments.gather()
+  request_transrcipt
+  appeal_date
+  delivery_intro
+  employer.name.first
+  recert_reminder
+
   nav.set_section('section_about')
   set_progress(75)
   users[0].name.first
+  users[0].address.address
   users[0].phone_number
   users[0].id_or_ssn
 
@@ -133,29 +156,29 @@ question: |
 subquestion: |
   If you are denied unemployment benefits, you have 3 opportunities to appeal:
 
-  1. File an appeal (a Request for Reconsideration) to be heard by an IDES referee. **This program makes a Request for Reconsideration.**
+  1. File an appeal, (**a Request for Reconsideration**)[https://www.illinoislegalaid.org/legal-information/unemployment-benefits-request-hearing] to be heard by an IDES referee.
   
-  2. After your hearing, if you don't agree with the referee's decision, file an appeal with the Board of Review. Use a different [**Easy Form to appeal to the Board of Review**](https://www.illinoislegalaid.org/node/30846).
+  2. After your hearing, if you don't agree with the referee's decision, file an appeal with the Board of Review. **This program creates a Notice of Appeal to the Board of Review.**
   
   3. Finally, if you don't agree with the Board of Review's decision, file an Administrative Review Action in Circuit Court.
 
   **Note:** IDES offers free legal service to represent claimants in their unemployment benefits appeals. See the [**IDES Legal Services Program**](https://ides.illinois.gov/resources/legal-services-program/legal-services.html) to find out if you qualify.
 ---
-id: received finding letter
+id: received decision letter
 question: |
-  Did you get a Finding letter from IDES?
+  Did you get a decision letter from IDES?
 subquestion: |
   This is a letter from a claims adjudicator at the Illinois Department of Employment Security (IDES).
 fields:
-  - no label: received_finding_letter
+  - no label: received_denial_letter
     datatype: yesnoradio
 ---
-id: no finding letter
-event: no_finding_letter
+id: no decision letter
+event: no_decision_letter
 question: |
   Sorry
 subquestion: |
-  You must have received a Finding letter from IDES to request a reconsideration hearing with a referee.
+  You must have received a deision letter from IDES to create a Notice of Appeal to the Board of Review.
 
   To learn more, read ILAO's article about [being denied unemployment insurance](https://www.illinoislegalaid.org/node/32541).
 
@@ -164,9 +187,9 @@ buttons:
   - Exit: exit
   - Restart: restart
 ---
-id: finding letter date
+id: decision letter date
 question: |
-  When was the finding letter dated?
+  When was the decision letter dated?
 fields:
   - Finding letter date: decision_date
     datatype: ThreePartsDate
@@ -174,18 +197,128 @@ fields:
 ---
 code: |
   decision_diff = date_difference(decision_date, today())
-  check_late_request = True
+  check_late_appeal = True
 ---
 id: late request
 question: |
-  Warning: Late request
+  Explain why you are late to file appeal.
 subquestion: |
-  You have 30 days from the date on the decision to send in your request. Based on the date of the decision (${ decision_date.format("MM/dd/yyyy") }), your appeal is late.
+  You have thirty (30) days from the date on the decision to send in your Notice of Appeal. Based on the date of the decision (${ decision_date.format("MM/dd/yyyy") }), your appeal is late. Please explain why:
 
-  You can still request reconsideration, but it might not be accepted. You may want to talk with a lawyer about your options. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
+  Click **Back** if you want to change the date of decision. Or you can click **Next** to make your appeal even though it is late.
+fields: 
+  - Explain why your appeal is late: late_reason
+    datatype: area
+    rows: 5
+---
+id: referee hearing date
+question: |
+  When was the referee hearing?
+fields: 
+  - no label: hearing_date
+    datatype: ThreePartsDate
+    alMax: ${ today().format("yyyy-MM-dd") }
+---
+id: attend hearing
+question: |
+  Did you attend the referee hearing?
+fields:
+  - no label: attended_hearing
+    datatype: yesnoradio
+---
+id: attended_hearing
+question: |
+  Why didn't you attend the referee hearing?
+fields: 
+  - no label: missed_hearing_explanation
+    datatype: area
+    rows: 5
+---
+id: docket number
+question: |
+  What is the Docket Number in the decision letter?
+subquestion: |
+  The docket number should be listed on your IDES denial letter.
+fields: 
+  - no label: docket_number
+    maxlength: 25
+---
+################# Your Appeal #######################
+id: termination type
+question: |
+  How did your employment end?
+subquestion: |
+  Your decision letter tells you the decision of the referee who held your hearing and heard the testimony.
 
-  Click **Back** if you want to change the date of the claims adjudicator's decision. Or you can click **Next** to make your request even though it is late.
-continue button field: late_request
+  You need to explain the reason why you believe the referee's decision was wrong.
+
+  Referees make their decisions based on how your employment ended. Your employment could have ended:
+
+  * Voluntarily, for example you quit your job, or
+  * Involuntarily, for example you were fired or the business closed.
+fields:
+  - How did your employment end?: termination_type
+    choices: 
+      - I quit.: quit
+      - I was fired.: fired
+---
+id: quit intro
+question: |
+  Must have quit for good cause
+subquestion: |
+  To get benefits, you must prove that you quit for a good cause.
+
+  A referee may decide you quit for a good cause and thus allow you to receive benefits if you can show one of these reasons applies to your situation.
+
+  * The job posed a risk to your health, safety, or morals.
+  * You were not able to perform your work.
+  * You left because of your medical problem or the medical problem of a spouse, child, or parent. You gave your employer a doctor's note proving the illness or disability, and you told your employer you were going to miss work.
+  * Your employer was violating laws regarding your wages or work conditions.
+  * Your employer greatly reduced your pay, your hours, and/or your benefits.
+  * You left your job because you had a serious job offer (including a starting date and rate of pay), and you stayed at your current job until just before the new job was to start.
+  * For some other reason, your workplace or working conditions were such that any reasonable worker would want to quit. These reasons should be related to your ability to do your job, not what is happening in your life outside of your job.
+continue button field: quit_intro  
+---
+id: quit solve problems
+question: |
+  Explain how you tried to solve problems
+subquestion: |
+  You also need to show that before you quit, you tried to solve the problems you were having at your job.
+
+  For example, you could explain:
+    * If you sent in a formal complaint about working conditions, or
+    * If you went to talk about your work problems with your supervisor and tried to work out a solution.
+    * If you did not do this, you need to explain why.
+continue button field: quit_solve_problems
+---
+template: not_misconduct_help 	
+subject: |
+  **How do I know if what I did was misconduct?**	
+content: |
+  These will probably not be found to be misconduct.
+
+    * You were fired because your employer thought your work wasn't good enough, but you had tried your best to do it right. For example, if you made several mistakes while operating the cash register, but did not mean to make those mistakes.
+    * You didn't know what you were doing was wrong because no one had told you or warned you about it. For example, if you were not warned by your supervisor that you should lock the tool cabinet, and you didn't know it was a rule.
+    * You refused to do a dangerous job after you told your employer about the danger. For example, if your employer wanted you to work on a machine without safety glasses and you refused to do it because you thought it was too dangerous.
+    * You were fired for reasons that were not related to how you do your job. One example is if your employer fired you because you were stopped for a traffic violation and driving is not part of your job.
+    * You were absent or late but had a good reason and notified your employer. Be prepared to prove the reason for your last absence or lateness. If you think your employer will claim that you did not call in, you should order the phone records and bring them to the hearing.
+    * Your employer asked you to do something illegal or immoral, and you refused.
+    * Your employment ended because the business where you worked closed.
+---
+id: fired intro
+question: |
+  Why were you fired?
+subquestion: |
+  Your employer has to prove that you were fired for ""misconduct."" This means that you were fired because of something you did on purpose that broke a rule or policy.
+
+  To get benefits, you need to show that:
+    * You did not do the acts which your employer says you did, or
+    * Those acts were not misconduct.
+
+  ${ collapse_template(not_misconduct_help) }  
+
+  For more information, see [Getting unemployment benefits if I was fired.](https://www.illinoislegalaid.org/legal-information/getting-unemployment-benefits-if-i-was-fired)
+continue button field: fired_intro
 ---
 template: request_example_help	
 subject: |
@@ -252,6 +385,153 @@ script: |
     });
   </script>
 ---
+id: any additional documents
+question: |
+  Additional documents
+subquestion: |
+  You can include other documents with your appeal to help prove your claim.
+
+  **Note:** If you did not present these at your first hearing, you will have to explain to the Board of Review why you did not.
+
+  You need to send a copy of these documents to the Board of Review and to your former employer.
+
+  Some things that may be helpful depending on your situation are:
+
+    * Your medical records,
+    * A letter from your doctor or another healthcare professional,
+    * Phone records, in cases where the employer claims you were absent without calling in, or
+    * Any other document you think supports your version of events (or your story).
+fields:
+  - Add documents?: attachments.there_are_any
+    datatype: yesnoradio
+---
+id: additional document details
+question: |
+  ${ ordinal(i).upper()} attachment details
+fields: 
+  - Document: attachments[i].name.text 
+    maxlength: 20
+  - Short description: attachments[i].desc
+    maxlength: 20
+  - Did you present this at the referee hearing?: attachments[i].at_hearing
+    datatype: yesnoradio
+  - Reason why you did not present it at the hearing.:	attachments[i].not_at_hearing_reason
+    show if:
+      variable: attachments[i].at_hearing
+      is: False
+---
+id: any more documents
+question: |
+  Do you want to add any other documents to your appeal?
+subquestion: |
+  So far you told us about ...
+
+  % for el in attachments:
+  * ${ el.name.text }
+  % endfor
+fields:
+  - Include another document?: attachments.there_is_another
+    datatype: yesnoradio
+---
+code: |
+  attachments[i].name.text
+  attachments[i].complete = True
+---
+code: |
+  if attachments.number_gathered() == 3:
+    attachments.there_is_another = False
+---
+id: request transcript
+question: |
+  Do you want to include a request for the transcript in your letter?
+subquestion: |
+  You can request a transcript of the referee hearing and a copy of the record from IDES. You can use these if you want to make an additional written argument to the Board of Review that explains why you should get benefits.
+
+  **Important:** There is a very short deadline - 10 days from when the transcript is mailed to you - to submit your written argument to the Board of Review and to the employer.
+
+  Like the Notice of Appeal made by this program, you can deliver your written argument to the IDES Chicago office:
+
+    * In person,
+    * Send by mail, or
+    * Fax to: (630) 645-3731.
+
+  The address of the IDES Board of Review Chicago office is on the cover letter.
+fields: 
+  - no label: request_transrcipt
+    datatype: yesnoradio
+---
+id: appeal date
+question: |
+  When you will send your appeal?
+subquestion: |
+  After you download your appeal, you can mail, fax or deliver it to your local IDES office. The address and fax number appear on the Finding letter or Determination. You can also use the [**IDES Office Locator**](https://ides.illinois.gov/about/locations.html).
+
+  **Note:** Be sure to send your appeal within 30 days of when your Finding letter was dated (${decision_date}).
+fields:
+  - Date you will send your appeal: appeal_date
+    datatype: ThreePartsDate
+    alMin: ${ today().format("yyyy-MM-dd") }
+    required: False
+  - note: |
+      If you don't know this now, leave it blank. Be sure to add the date when you sign the request.
+---
+id: delivery intro
+question: |
+  Deliver your appeal
+subquestion: |
+  This program creates a Notice of Appeal and a cover letter.
+
+  You need to deliver the original Notice of Appeal and the cover letter to the Board of Review. You can deliver them to the Chicago office in person, send by mail, or fax to: (630) 645-3731.
+
+  You also need to deliver, or ""serve,"" a copy of the Notice of Appeal to your former employer. You may send the notice via certified mail, or you may deliver it in person.
+continue button field: delivery_intro
+---
+sets:
+  - employer.name.first
+id: former employer
+question: |
+  Former employer
+fields: 
+  - code: |
+      employer.name_fields(person_or_business='unsure')
+  - Street address: employer.address.address
+    address autocomplete: True
+  - Address line 2: employer.address.unit
+    required: False
+  - City: employer.address.city
+  - State: employer.address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP code: employer.address.zip
+  - "How will you deliver the letter and appeal to your former employer?": delivery_method
+    datatype: radio
+    choices: 
+      - Mail: certify
+      - Personal delivery: delivery
+      - I don't know. I will add this to my form later.: no
+  - "When will you deliver the letter and appeal to your former employer?": delivery_date
+    datatype: ThreePartsDate
+    alMin: ${ today().format("yyyy-MM-dd") }
+    required: False
+  - note: |
+      *If you do not know this now, be sure to add it to your Notice of Appeal later.*
+---
+id: recertification reminder
+question: |
+  Important
+subquestion: |
+
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Remember to re-certify</h6>
+    <p>During the appeal process, you must continue to certify that you are eligible for unemployment benefits for each two-week period you are unemployed.</p>
+    <p>You can do this online or by phone using Tele-Serve.</p>
+  </div>
+
+  Learn more about how to certify for benefits on [IDES's website](https://ides.illinois.gov/unemployment/certify.html).
+continue button field: recert_reminder
+---
+################ ABOUT YOU ######################
 id: your name
 sets:
   - users[0].name.first
@@ -263,6 +543,28 @@ question: |
 fields:
   - code: |
       users[0].name_fields()
+---
+id: your address
+sets:
+  - users[0].address.address
+  - users[0].address.city
+  - users[0].address.state
+  - users[0].address.zip
+question: |
+  What is your address?
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address 2: users[0].address.unit
+    required: False
+    help: |
+      Appartment, floor, or unit number.
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
 ---
 id: your contact information
 question: |
@@ -293,35 +595,6 @@ content: |
   The Claimant ID can be found in the upper-right of the UI Finding letter, as well as other letters and emails received from IDES.
   
   [FILE findingletterexample.jpeg, 100%, Locating a Claimant ID on IDES letter]
----
-id: request date
-question: |
-  When you will send your request?
-subquestion: |
-  After you download your request, you can mail, fax or deliver it to your local IDES office. The address and fax number appear on the Finding letter or Determination. You can also use the [**IDES Office Locator**](https://ides.illinois.gov/about/locations.html).
-
-  **Note:** Be sure to send your request within 30 days of when your Finding letter was dated (${decision_date}).
-fields:
-  - Date you will send your request: request_date
-    datatype: ThreePartsDate
-    alMin: ${ today().format("yyyy-MM-dd") }
-    required: False
-  - note: |
-      If you don't know this now, leave it blank. Be sure to add the date when you sign the request.
----
-id: recertification reminder
-question: |
-  Important
-subquestion: |
-
-  <div class="alert alert-info ilao-info" role="alert">
-    <h6 class="alert-heading">Remember to re-certify</h6>
-    <p>During the appeal process, you must continue to certify that you are eligible for unemployment benefits for each two-week period you are unemployed.</p>
-    <p>You can do this online or by phone using Tele-Serve.</p>
-  </div>
-
-  Learn more about how to certify for benefits on [IDES's website](https://ides.illinois.gov/unemployment/certify.html).
-continue button field: recert_reminder
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -379,11 +652,12 @@ content: |
 ---
 ###################### ATTACHMENTS ##########################
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, ides_referee_request], filename="completed_referee_request.pdf", title="All forms", enabled=True)
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, notice_of_appeal, cover_letter], filename="ui_hearing_appeal_packet.pdf", title="All forms", enabled=True)
 ---
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", enabled=True, has_addendum=False)
-  - ides_referee_request: ALDocument.using(title=form_name, filename="ides_request_for_reconsideration.pdf", enabled=True, has_addendum=False)
+  - notice_of_appeal: ALDocument.using(title=form_name, filename="notice_of_appeal.pdf", enabled=True, has_addendum=False)
+  - cover_letter: ALDocument.using(title="Cover Letter", filename="cover_letter.pdf", enabled=True, has_addendum=False)
 ---
 attachment:
   variable name: instructions[i]
@@ -393,23 +667,65 @@ attachment:
   docx template file: instructions.docx
 ---
 attachment:
-  - name: ides_referee_request
-    variable name: ides_referee_request[i]
-    filename: ides_referee_request
-    pdf template file: ides_referee_request.pdf
+  variable name: cover_letter[i]
+  name: cover_letter
+  filename: cover_letter
+  skip undefined: True
+  docx template file: cover_letter.docx
+---
+attachment:
+  - name: notice_of_appeal
+    variable name: notice_of_appeal[i]
+    filename: notice_of_appeal
+    pdf template file: notice_of_appeal.pdf
     skip undefined: True
     editable: False
     fields:
-      - "user_last": ${ users[0].name.last }  
-      - "user_first": ${ users[0].name.first }
-      - "user_middle": ${ users[0].name.middle[:1] }
-      - "claimant_id": ${ int(users[0].id_or_ssn) }
-      - "Claimant": True
-      - "decision_date": ${ decision_date.format("MM/dd/yyyy") }
-      - "reason": 'the denial of unemployment benefits'
-      - "reason_continued": ${ 'to ' + users[0].name_full() }
-      - "appeal": ${ appeal_reason }
+      - "name": ${ users[0].name_full() }  
+      - "appellant": "claimant"
+      - "ssn": |
+          % if users[0].id_or_ssn | length == 4:
+          ${ "XXX-XX-" + int(users[0].id_or_ssn) }
+          % else:
+          ${ int(users[0].id_or_ssn) }
+          % endif
+      - "address1": ${ users[0].address.address }
+      - "address2": ${ users[0].address.unit }
+      - "city": ${ users[0].address.city }
+      - "state": ${ users[0].address.state }
+      - "zip": ${ users[0].address.zip }
+      - "appeal_filed_date": ${ decision_date.format("MM/dd/yyyy") }
+      - "docket_number": ${ docket_number }
+      - "letter": True
+      - "other": ${ attachments.are_there_any }
+      - "other_explain": |
+          % if attachments.are_there_any:
+            ${ attachments.name.text }
+          % else:
+          ''
+          % endif
+      - "appeal_reason": |
+          ${ "I disagree with the decision for the following reasons: " + appeal_reason }
+
+          % if late_reason:
+            ${ "\n\nMy appeal is late because: " + late_reason }
+          % endif
+
+          % if attended_hearing == False:
+          ${ "\n\nI did not attend the " + hearing_date.format("MMMM dd, yyyy") + " hearing because: " + missed_hearing_explanation } 
+          % endif
+      # service
+      - "service_name": ${ employer.name_full() }
+      - "service_address": ${ employer.address.on_one_line() }
+      - "service_date": ${ delivery_date.format("MM/dd/yyyy") }
+      - "servedby": ${ delivery_method }
+      
+      # |
+      #     % if delivery_method == "certify":
+      #     "certified" 
+      #     % elif delivery_method == "delivery":
+      #     "delivery"
+      #     % endif 
       # signature not electronic
       - "signature_date": ${ request_date.format("MM/dd/yyyy") }
-      - "user_name": ${ users[0].name_full() }
-      - "phone_number": ${ phone_number_formatted(users[0].phone_number) }
+      

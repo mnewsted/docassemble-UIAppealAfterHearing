@@ -7,25 +7,74 @@ subquestion: |
   Edit your answers below.
 review:
   - note: |
-     <h4>UI decision</h4>
+     <h4>Referee hearing</h4>
   - Edit: received_finding_letter
     button: |
-      **UI finding letter:**
+      **UI decision letter from IDES:**
       ${ word(yesno(received_finding_letter)) }
   - Edit: decision_date
     button: |
-      **UI finding letter date:**
-      ${ decision_date.format("MM/dd/yyyy") }
+      **Decision date:**
+      ${ decision_date.format("MMMM d, YYYY") }
+  - Edit: late_reason
+    button: |
+      **Late appeal reason:**
+      ${ late_reason }
+    show if: late_reason
+  - Edit: hearing_date
+    button: |
+      **Referee hearaing date:**
+      ${ hearing_date.format("MM/dd/yyyy") }
+  - Edit: attended_hearing
+    button: |
+      **Attended referee hearing:**
+      ${ word(yesno(attended_hearing)) }
+  - Edit: missed_hearing_explanation
+    button: |
+      **Reason for not attending referee hearing:**
+      ${ missed_hearing_explanation }
+  - Edit: docket_number
+    button: |
+      **Docket number:**
+      ${ docket_number }
+  - note: |
+     <h4>Your appeal</h4>
+  - Edit: termination_type
+    button: |
+      **Termination type:**
+      % if termination_type == "quit":
+        I quit.
+      % endif
+      % if termination_type == "fired":
+        I was fired.
+      % endif
+  - Edit: quit_solve_problems
+    button: |
+      **Explain why you quit:**
+      ${ quit_solve_problems }
+    show if: termination_type == "quit"
   - Edit: appeal_reason
     button: |
-      **Appeal reason:**
+      **I disagree with the decision for the following reasons:**
 
       ${ appeal_reason }
-  - Edit: request_date
+  - Edit: attachments.there_are_any
     button: |
-      **Date of request:**
-      % if request_date:
-      ${ request_date.format("MM/dd/yyyy") }
+      **Including additional documents:**
+      ${word(yesno(attachments.there_are_any))}      
+  - Edit: attachments.revisit
+    button: |
+      **Addtitional documents to include:**
+      
+      % for doc in attachments:
+      * ${ doc.name.text }, ${ doc.desc }
+      % endfor
+    show if: attachments.there_are_any
+  - Edit: delivery_date
+    button: |
+      **Delivery date:**
+      % if delivery_date:
+      ${ delivery_date.format("MM/dd/yyyy") }
       % else:
       None entered
 
@@ -37,6 +86,10 @@ review:
     button: |
       **Your name:**
       ${ users[0].name_full() }
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**
+      ${ users[0].address.on_one_line(bare=True) }
   - Edit: users[0].phone_number
     button: |
       **Your phone number:**
@@ -47,33 +100,87 @@ review:
       % endif
   - Edit: users[0].id_or_ssn
     button: |
-      **Claimant ID:**
+      **Claimant ID / last 4 SSN:**
       ${ int(users[0].id_or_ssn) }
 ---
-#################### SECTION REVIEW - UNEMPLOYMENT BENEFITS DECISION #########################
-id: Unemployment benefits decision review screen
-event: section_decision
+#################### SECTION REVIEW - REFEREE HEARING #########################
+id: Referee hearing details review screen
+event: section_hearing
 question: |
-  Unemployment benefits decision details
+  Referee hearing details
 review:
   - Edit: received_finding_letter
     button: |
-      **UI finding letter:**
+      **UI decision letter from IDES:**
       ${ word(yesno(received_finding_letter)) }
   - Edit: decision_date
     button: |
-      **UI finding letter date:**
-      ${ decision_date.format("MM/dd/yyyy") }
+      **Decision date:**
+      ${ decision_date.format("MMMM d, YYYY") }
+  - Edit: late_reason
+    button: |
+      **Late appeal reason:**
+      ${ late_reason }
+    show if: late_reason
+  - Edit: hearing_date
+    button: |
+      **Referee hearaing date:**
+      ${ hearing_date.format("MM/dd/yyyy") }
+  - Edit: attended_hearing
+    button: |
+      **Attended referee hearing:**
+      ${ word(yesno(attended_hearing)) }
+  - Edit: missed_hearing_explanation
+    button: |
+      **Reason for not attending referee hearing:**
+      ${ missed_hearing_explanation }
+  - Edit: docket_number
+    button: |
+      **Docket number:**
+      ${ docket_number }
+---
+#################### SECTION REVIEW - APPEAL #########################
+id: Your appeal review screen
+event: section_appeal
+question: |
+  Your appeal
+review:
+  - Edit: termination_type
+    button: |
+      **Termination type:**
+      % if termination_type == "quit":
+        I quit.
+      % endif
+      % if termination_type == "fired":
+        I was fired.
+      % endif
+  - Edit: quit_solve_problems
+    button: |
+      **Explain why you quit:**
+      ${ quit_solve_problems }
+    show if: termination_type == "quit"
   - Edit: appeal_reason
     button: |
-      **Appeal reason:**
+      **I disagree with the decision for the following reasons:**
 
       ${ appeal_reason }
-  - Edit: request_date
+  - Edit: attachments.there_are_any
     button: |
-      **Date of request:**
-      % if request_date:
-      ${ request_date.format("MM/dd/yyyy") }
+      **Including additional documents:**
+      ${word(yesno(attachments.there_are_any))}      
+  - Edit: attachments.revisit
+    button: |
+      **Addtitional documents to include:**
+      
+      % for doc in attachments:
+      * ${ doc.name.text }, ${ doc.desc }
+      % endfor
+    show if: attachments.there_are_any
+  - Edit: delivery_date
+    button: |
+      **Delivery date:**
+      % if delivery_date:
+      ${ delivery_date.format("MM/dd/yyyy") }
       % else:
       None entered
 
@@ -90,6 +197,10 @@ review:
     button: |
       **Your name:**
       ${ users[0].name_full() }
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**
+      ${ users[0].address.on_one_line(bare=True) }
   - Edit: users[0].phone_number
     button: |
       **Your phone number:**
@@ -100,6 +211,31 @@ review:
       % endif
   - Edit: users[0].id_or_ssn
     button: |
-      **Claimant ID:**
+      **Claimant ID / last 4 SSN:**
       ${ int(users[0].id_or_ssn) }
+---
+################ REVISIT TABLES ###################
+id: attachments table
+table: attachments.table
+rows: attachments
+columns:
+  - Attachment: |
+      row_item.name.text
+  - Description: |
+      row_item.desc
+  - Edit name: |
+      action_button_html(url_action(row_item.attr_name("name.text")), label="Edit", icon="pencil-alt")
+delete buttons: True
+confirm: True
+---
+id: attachments review screen
+continue button field: attachments.revisit
+question: |
+  Edit information about your attachments
+subquestion: |
+  ${ attachments.table }
+
+  % if attachments.number_gathered() < 3:
+  ${ attachments.add_action() }
+  % endif
 ---
